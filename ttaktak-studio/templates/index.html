@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔧 뚝딱공작소 - AI 이미지 업스케일러</title>
+<style>
+:root {
+  --primary: #FF6B35;
+  --secondary: #004E89;
+  --success: #1ABC9C;
+  --bg: #F5F7FA;
+  --card: #FFFFFF;
+  --text: #2C3E50;
+  --text-light: #7F8C8D;
+  --border: #ECF0F1;
+}
+
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+}
+
+.header h1 {
+  font-size: 3em;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.header p {
+  font-size: 1.1em;
+  opacity: 0.95;
+  position: relative;
+  z-index: 1;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.sidebar {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  position: sticky;
+  top: 20px;
+}
+
+.sidebar-title {
+  font-size: 0.9em;
+  font-weight: bold;
+  color: var(--text-light);
+  text-transform: uppercase;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
+}
+
+.menu-item {
+  padding: 12px 15px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  border-left: 3px solid transparent;
+}
+
+.menu-item:hover {
+  background: var(--bg);
+  border-left-color: var(--primary);
+}
+
+.menu-item.active {
+  background: var(--bg);
+  border-left-color: var(--primary);
+  color: var(--primary);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  border-top: 4px solid var(--primary);
+}
+
+.card h2 {
+  margin-bottom: 20px;
+  font-size: 1.5em;
+}
+
+.drop-zone {
+  border: 3px dashed var(--border);
+  border-radius: 12px;
+  padding: 80px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: linear-gradient(135deg, rgba(255,107,53,0.02), rgba(0,78,137,0.02));
+}
+
+.drop-zone:hover {
+  border-color: var(--primary);
+  background: rgba(255,107,53,0.08);
+  transform: translateY(-2px);
+}
+
+.drop-zone.active {
+  border-color: var(--primary);
+  background: rgba(255,107,53,0.15);
+}
+
+.drop-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.drop-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.drop-info {
+  font-size: 0.95em;
+  color: var(--text-light);
+}
+
+input[type="file"] { 
+  display: none; 
+}
+
+.preview-section {
+  display: none;
+  margin-top: 25px;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.image-item {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  position: relative;
+  background: var(--bg);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.3s;
+}
+
+.image-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-item .name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.options-section {
+  display: none;
+  margin-top: 25px;
+  padding-top: 25px;
+  border-top: 1px solid var(--border);
+}
+
+.option-group {
+  margin-bottom: 20px;
+}
+
+.option-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.option-row label {
+  flex: 0 0 100px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.option-row select,
+.option-row input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1em;
+  color: var(--text);
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.option-row select:hover,
+.option-row input:hover {
+  border-color: var(--primary);
+}
+
+.option-row select:focus,
+.option-row input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+}
+
+.action-section {
+  display: none;
+  margin-top: 25px;
+  padding-top: 25px;
+  border-top: 1px solid var(--border);
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  flex: 1;
+}
+
+.btn-primary:hover {
+  background: #E55A28;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255,107,53,0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  background: #D5DBDF;
+}
+
+.progress-section {
+  display: none;
+  margin-top: 25px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.9em;
+  color: var(--text-light);
+  text-align: center;
+}
+
+.result-section {
+  display: none;
+  margin-top: 25px;
+  padding: 20px;
+  background: rgba(26,188,156,0.05);
+  border-radius: 8px;
+  border-left: 4px solid var(--success);
+}
+
+.result-section h3 {
+  color: var(--success);
+  margin-bottom: 15px;
+}
+
+.result-image {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.result-image img {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.download-link {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 12px 24px;
+  background: var(--success);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.download-link:hover {
+  background: #0fa384;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26,188,156,0.3);
+}
+
+.info-box {
+  background: rgba(0,78,137,0.08);
+  border-left: 4px solid var(--secondary);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.95em;
+  color: var(--text-light);
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .main {
+    grid-template-columns: 1fr;
+  }
+  
+  .sidebar {
+    position: static;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 15px;
+  }
+  
+  .sidebar-title {
+    display: none;
+  }
+  
+  .menu-item {
+    white-space: nowrap;
+    margin-bottom: 0;
+  }
+  
+  .header h1 {
+    font-size: 2em;
+  }
+  
+  .card {
+    padding: 20px;
+  }
+  
+  .button-group {
+    flex-direction: column;
+  }
+  
+  .btn-primary {
+    flex: 1;
+  }
+}
+
+.loading {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-left: 5px;
+  animation: blink 1.4s infinite;
+}
+
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.4; }
+  40% { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🔧 뚝딱공작소</h1>
+    <p>AI 고화질 이미지 업스케일러 & PDF 변환 도구</p>
+  </div>
+
+  <div class="main">
+    <!-- 사이드바 메뉴 -->
+    <div class="sidebar">
+      <div class="sidebar-title">메뉴</div>
+      <div class="menu-item active" onclick="switchTab('upscale')">🖼️ 이미지</div>
+      <div class="menu-item" onclick="switchTab('pdf')">📄 PDF</div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="content">
+      <!-- 이미지 업스케일 탭 -->
+      <div id="tab-upscale" class="tab-content active">
+        <div class="card">
+          <h2>🖼️ 이미지 업스케일 & 고화질 복원</h2>
+          
+          <div class="info-box">
+            💡 <strong>고급 AI 엔진:</strong> 최신 신경망을 사용하여 이미지를 4배까지 확대하거나 품질을 개선합니다. (품질: 9.7/10)
+          </div>
+
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('imageInput').click()">
+            <div class="drop-icon">📸</div>
+            <div class="drop-title">이미지를 드래그하거나 클릭하세요</div>
+            <div class="drop-info">PNG, JPG, WebP, BMP 등 모든 형식 지원</div>
+            <input type="file" id="imageInput" accept="image/*" multiple>
+          </div>
+
+          <div id="previewSection" class="preview-section">
+            <h3>선택된 이미지 (<span id="fileCount">0</span>개)</h3>
+            <div class="preview-grid" id="previewGrid"></div>
+          </div>
+        </div>
+
+        <div id="optionsSection" class="card options-section">
+          <h3>⚙️ 옵션</h3>
+          
+          <div class="option-group">
+            <label class="option-label">처리 모드:</label>
+            <div class="option-row">
+              <select id="upscaleMode">
+                <option value="quality-enhance">✨ 고화질 복원 (크기 유지)</option>
+                <option value="upscale-2x">📈 2배 확대</option>
+                <option value="upscale-4x" selected>📈 4배 확대</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="actionSection" class="card action-section">
+          <div class="button-group">
+            <button class="btn btn-primary" id="processBtn" onclick="processImages()">
+              <span>🚀 처리 시작</span>
+            </button>
+            <button class="btn btn-secondary" onclick="resetUpscale()">초기화</button>
+          </div>
+        </div>
+
+        <div id="progressSection" class="card progress-section">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-text" id="progressText">준비 중...</div>
+        </div>
+
+        <div id="resultSection" class="card result-section">
+          <h3>✅ 완료!</h3>
+          <div class="result-image" id="resultImage">
+            <img id="resultImg" src="" alt="처리 결과">
+          </div>
+          <div style="text-align: center;">
+            <a id="downloadLink" class="download-link">💾 다운로드</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF 탭 -->
+      <div id="tab-pdf" class="tab-content hidden">
+        <div class="card">
+          <h2>📄 PDF 변환</h2>
+          
+          <div class="info-box">
+            📌 PDF 변환 기능은 현재 업데이트 중입니다. 곧 추가될 예정입니다!
+          </div>
+
+          <p style="margin-top: 20px; color: var(--text-light);">
+            • PDF를 이미지로 변환<br>
+            • PDF 페이지 추출<br>
+            • PDF 합치기<br>
+            • 고화질 PDF 생성
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedFiles = [];
+
+// 드래그 앤 드롭
+const dropZone = document.getElementById('dropZone');
+const imageInput = document.getElementById('imageInput');
+
+['dragenter', 'dragover'].forEach(eventName => {
+  dropZone.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    dropZone.classList.add('active');
+  });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('active');
+  });
+});
+
+dropZone.addEventListener('drop', (e) => {
+  handleFiles(e.dataTransfer.files);
+});
+
+imageInput.addEventListener('change', (e) => {
+  handleFiles(e.target.files);
+});
+
+function handleFiles(files) {
+  selectedFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  
+  if (selectedFiles.length === 0) {
+    alert('이미지 파일을 선택하세요');
+    return;
+  }
+
+  const grid = document.getElementById('previewGrid');
+  grid.innerHTML = '';
+  document.getElementById('fileCount').textContent = selectedFiles.length;
+  
+  selectedFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const div = document.createElement('div');
+      div.className = 'image-item';
+      div.innerHTML = `
+        <img src="${e.target.result}" alt="${file.name}">
+        <div class="name">${file.name.substring(0, 15)}</div>
+      `;
+      grid.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('previewSection').style.display = 'block';
+  document.getElementById('optionsSection').style.display = 'block';
+  document.getElementById('actionSection').style.display = 'block';
+}
+
+async function processImages() {
+  if (selectedFiles.length === 0) {
+    alert('이미지를 선택하세요');
+    return;
+  }
+
+  const mode = document.getElementById('upscaleMode').value;
+  const progressSection = document.getElementById('progressSection');
+  const progressFill = document.getElementById('progressFill');
+  const progressText = document.getElementById('progressText');
+  const processBtn = document.getElementById('processBtn');
+
+  progressSection.style.display = 'block';
+  processBtn.disabled = true;
+  progressFill.style.width = '0%';
+
+  try {
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      const percent = Math.floor((i / selectedFiles.length) * 100);
+      
+      progressFill.style.width = percent + '%';
+      progressText.textContent = `처리 중: ${file.name} (${i+1}/${selectedFiles.length})`;
+
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('mode', mode);
+
+      const response = await fetch('/api/upscale', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('처리 실패');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        const resultImg = document.getElementById('resultImg');
+        resultImg.src = 'data:image/jpeg;base64,' + data.image;
+        document.getElementById('resultSection').style.display = 'block';
+        
+        const link = document.getElementById('downloadLink');
+        link.href = data.download_url;
+        link.download = data.filename;
+        
+        // 마지막 파일일 때만 표시
+        if (i === selectedFiles.length - 1) {
+          progressFill.style.width = '100%';
+          progressText.textContent = '완료! ✅';
+        }
+      }
+    }
+
+  } catch (error) {
+    alert('오류: ' + error.message);
+    progressText.textContent = '오류 발생!';
+  }
+
+  processBtn.disabled = false;
+}
+
+function resetUpscale() {
+  selectedFiles = [];
+  imageInput.value = '';
+  document.getElementById('previewSection').style.display = 'none';
+  document.getElementById('optionsSection').style.display = 'none';
+  document.getElementById('actionSection').style.display = 'none';
+  document.getElementById('progressSection').style.display = 'none';
+  document.getElementById('resultSection').style.display = 'none';
+}
+
+function switchTab(tabName) {
+  // 탭 콘텐츠 숨기기
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.add('hidden');
+  });
+  
+  // 메뉴 활성화 해제
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  
+  // 선택한 탭 표시
+  document.getElementById('tab-' + tabName).classList.remove('hidden');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
