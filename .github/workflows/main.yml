@@ -1,0 +1,33 @@
+name: Build EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install Flask Werkzeug Pillow opencv-python numpy pyinstaller
+    
+    - name: Build EXE
+      run: |
+        pyinstaller --onefile --name "뚝딱공작소" --add-data "templates:templates" --add-data "uploads:uploads" --hidden-import=flask --hidden-import=cv2 --hidden-import=numpy --console app.py
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: 뚝딱공작소-EXE
+        path: dist/뚝딱공작소.exe
